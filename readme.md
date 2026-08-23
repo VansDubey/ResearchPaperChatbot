@@ -52,7 +52,7 @@ deployment steps, see [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md).
 
 - **Programming Language**: Python
 - **Libraries**: Streamlit, FAISS, PyPDF2
-- **AI**: LangChain, RAG, Ollama
+- **AI**: LangChain, RAG, Groq, FastEmbed
 
 ## Next Steps
 **Evaluation**

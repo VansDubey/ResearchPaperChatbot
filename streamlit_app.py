@@ -45,18 +45,23 @@ def main():
 
     with st.sidebar:
         st.divider()
-        st.header("Ollama Settings")
-        ollama_base_url = st.text_input(
-            "Ollama URL", value=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        st.header("Groq Settings")
+        configured_key = os.getenv("GROQ_API_KEY", "")
+        groq_api_key = st.text_input(
+            "Groq API Key",
+            value=configured_key,
+            type="password",
+            placeholder="gsk_...",
+            disabled=bool(configured_key),
         )
         chat_model = st.text_input(
-            "Chat model", value=os.getenv("OLLAMA_CHAT_MODEL", "llama3.1:8b")
+            "Chat model", value=os.getenv("GROQ_CHAT_MODEL", "openai/gpt-oss-20b")
         )
         embedding_model = st.text_input(
             "Embedding model",
-            value=os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
+            value=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
         )
-        st.caption("Ollama must be running and both models must be downloaded.")
+        st.caption("Create a free API key at console.groq.com. Embeddings run locally.")
         st.divider()
         st.header("Add Research Paper")
         pdf_url = st.text_input(
@@ -70,8 +75,8 @@ def main():
 
         if st.button("🚀 Create Chatbot"):
             try:
-                if not ollama_base_url.strip():
-                    st.error("Ollama URL cannot be empty.")
+                if not groq_api_key:
+                    st.error("Add a Groq API key first.")
                 elif not chat_model.strip() or not embedding_model.strip():
                     st.error("Chat and embedding model names cannot be empty.")
                 elif not session_id.strip():
@@ -80,7 +85,7 @@ def main():
                     with st.spinner("Reading and indexing the paper..."):
                         chain = create_conversational_rag_chain(
                             pdf_url=pdf_url,
-                            ollama_base_url=ollama_base_url.rstrip("/"),
+                            groq_api_key=groq_api_key,
                             chat_model=chat_model.strip(),
                             embedding_model=embedding_model.strip(),
                         )
@@ -96,8 +101,8 @@ def main():
         st.header("Quick Guide")
         st.write(
             """
-            1. Start Ollama and download both models.
-            2. Enter the arXiv PDF URL.
+            1. Add your Groq API key.
+            2. Enter the arXiv PDF URL or ID.
             3. Optional: choose a Session ID for memory.
             4. Click 'Create Chatbot' to begin.
             5. Ask questions in the chat.

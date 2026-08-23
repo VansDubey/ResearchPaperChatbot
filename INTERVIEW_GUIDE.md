@@ -7,23 +7,23 @@ arXiv URL. The system downloads the paper, splits it into
 overlapping chunks, converts each chunk into an embedding, and stores the vectors
 in an in-memory FAISS index. For each question, LangChain first rewrites follow-up
 questions into standalone queries, retrieves the two most relevant chunks, and
-asks a locally hosted Ollama model to answer using that context. Streamlit provides the UI,
+asks a Groq-hosted model to answer using that context. Streamlit provides the UI,
 and session-scoped chat history enables multi-turn conversation.
 
 ## 2. End-to-end request flow
 
-1. `streamlit_app.py` collects the arXiv URL/ID, Ollama settings, and session ID.
+1. `streamlit_app.py` collects the arXiv URL/ID, Groq key, and session ID.
 2. `extract_arxiv_id()` validates and normalizes the paper identifier.
 3. `ArxivLoader` downloads and parses the paper and its metadata.
 4. `RecursiveCharacterTextSplitter` creates 512-character chunks with a
    16-character overlap. Overlap reduces the chance of losing meaning at a boundary.
-5. `OllamaEmbeddings` with `nomic-embed-text` maps every chunk to a dense vector.
+5. `FastEmbedEmbeddings` maps every chunk to a dense vector locally.
 6. `FAISS.from_documents()` builds an in-memory similarity-search index.
 7. When a user asks a question, the history-aware prompt turns a follow-up such as
    "What were its limitations?" into a standalone question.
 8. FAISS retrieves the top two semantically similar chunks.
 9. The QA prompt combines paper metadata, retrieved chunks, and the question.
-10. `ChatOllama` generates the answer, `ask_question()` streams it to Streamlit,
+10. `ChatGroq` generates the answer, `ask_question()` streams it to Streamlit,
     and `RunnableWithMessageHistory` saves the turn under the session ID.
 
 ## 3. File responsibilities
@@ -93,23 +93,23 @@ copy .env.example .env  # Windows; use `cp` on macOS/Linux
 streamlit run streamlit_app.py
 ```
 
-Install Ollama, then download and start the models before running Streamlit:
+Create a free Groq API key, put it in `.env`, and run Streamlit:
 
 ```bash
-ollama pull llama3.1:8b
-ollama pull nomic-embed-text
-ollama serve
+GROQ_API_KEY=gsk_replace_me
+streamlit run streamlit_app.py
 ```
 
-No external LLM API key is required. `.env` can override the Ollama URL and model names.
+The key can instead be entered in the sidebar. Embeddings remain local; only the
+question, retrieved context, and chat history are sent to Groq.
 
 ## 8. Deployment
 
 ### Streamlit Community Cloud
 
-Streamlit Community Cloud cannot reach Ollama running on a developer laptop. Use a
-publicly reachable, secured Ollama server or deploy the app and Ollama together on
-a VM/container platform. Never expose an unauthenticated Ollama port publicly.
+Push the repository to GitHub, create a Streamlit Community Cloud app, select
+`streamlit_app.py`, and add `GROQ_API_KEY` in the app's Secrets settings. The app
+can also deploy without a stored secret and ask each user for their own key.
 
 ### Docker
 
@@ -121,8 +121,8 @@ docker run --rm -p 8501:8501 \
 
 Open `http://localhost:8501`. The same image can be deployed to Cloud Run, Render,
 Azure Container Apps, ECS, or another container service. Configure port `8501`, the
-health path `/_stcore/health`. The Ollama endpoint must be reachable from the app
-container and have sufficient CPU/RAM or GPU resources for the selected model.
+health path `/_stcore/health`, and inject `GROQ_API_KEY` with the platform's secret
+manager.
 
 ## 9. Current completion boundary
 

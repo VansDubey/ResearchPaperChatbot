@@ -2,7 +2,8 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_groq import ChatGroq
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders.arxiv import ArxivLoader
@@ -32,8 +33,7 @@ def extract_arxiv_id(url):
 
 def create_arxiv_retriever(
     pdf_url,
-    ollama_base_url="http://localhost:11434",
-    embedding_model="nomic-embed-text",
+    embedding_model="BAAI/bge-small-en-v1.5",
 ):
     arxiv_id = extract_arxiv_id(pdf_url)
     if not arxiv_id:
@@ -46,10 +46,7 @@ def create_arxiv_retriever(
     documents = text_splitter.split_documents(documents=documents)
     vectorstore = FAISS.from_documents(
         documents=documents,
-        embedding=OllamaEmbeddings(
-            base_url=ollama_base_url,
-            model=embedding_model,
-        ),
+        embedding=FastEmbedEmbeddings(model_name=embedding_model),
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
     metadata = documents[0].metadata
@@ -68,18 +65,20 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 
 def create_conversational_rag_chain(
     pdf_url,
-    ollama_base_url="http://localhost:11434",
-    chat_model="llama3.1:8b",
-    embedding_model="nomic-embed-text",
+    groq_api_key,
+    chat_model="openai/gpt-oss-20b",
+    embedding_model="BAAI/bge-small-en-v1.5",
 ):
-    llm = ChatOllama(
-        base_url=ollama_base_url,
+    if not groq_api_key:
+        raise ValueError("A Groq API key is required.")
+    llm = ChatGroq(
+        groq_api_key=groq_api_key,
         model=chat_model,
         temperature=0,
+        max_retries=2,
     )
     retriever, documents, metadata = create_arxiv_retriever(
         pdf_url=pdf_url,
-        ollama_base_url=ollama_base_url,
         embedding_model=embedding_model,
     )
 
