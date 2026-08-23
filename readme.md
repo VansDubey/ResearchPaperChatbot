@@ -9,7 +9,7 @@ Welcome to the Arxiv Research Paper Chatbot! This project is designed to assist 
 
 <br>
 
-You can try the live demo ► [DEMO](https://rag-arxiv-bot-aezrygkhlj5jorueq2ayo6.streamlit.app).
+Try the permanent deployment: [Open the Research Paper Chatbot](https://researchpaperchatbot-htfeuspv8peraj9aqdjnpd.streamlit.app/).
 
 <br>
 
@@ -26,7 +26,7 @@ You can try the live demo ► [DEMO](https://rag-arxiv-bot-aezrygkhlj5jorueq2ayo
 To set up the project, follow these steps:
 ```bash
 # Clone the project
-git clone https://github.com/tanmayjain98/RAG-arxiv-bot.git && cd RAG-arxiv-bot
+git clone https://github.com/VansDubey/ResearchPaperChatbot.git && cd ResearchPaperChatbot
 
 # Environment
 conda create --name rag-arxiv-bot python=3.10 -y
