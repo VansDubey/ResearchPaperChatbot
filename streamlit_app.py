@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from rag import create_conversational_rag_chain
+from rag import build_history_session_id, create_conversational_rag_chain, extract_arxiv_id
 from utils import generate_random_id, ask_question
 
 
@@ -47,13 +47,14 @@ def main():
         st.divider()
         st.header("Groq Settings")
         configured_key = os.getenv("GROQ_API_KEY", "")
-        groq_api_key = st.text_input(
+        entered_groq_api_key = st.text_input(
             "Groq API Key",
-            value=configured_key,
+            value="",
             type="password",
             placeholder="gsk_...",
-            disabled=bool(configured_key),
+            help="A configured server key is used automatically; it is never displayed here.",
         )
+        groq_api_key = configured_key or entered_groq_api_key
         chat_model = st.text_input(
             "Chat model", value=os.getenv("GROQ_CHAT_MODEL", "openai/gpt-oss-20b")
         )
@@ -82,6 +83,10 @@ def main():
                 elif not session_id.strip():
                     st.error("Session ID cannot be empty.")
                 else:
+                    paper_id = extract_arxiv_id(pdf_url)
+                    if not paper_id:
+                        st.error("Enter a valid arXiv PDF URL, abstract URL, or paper ID.")
+                        st.stop()
                     with st.spinner("Reading and indexing the paper..."):
                         chain = create_conversational_rag_chain(
                             pdf_url=pdf_url,
@@ -90,7 +95,9 @@ def main():
                             embedding_model=embedding_model.strip(),
                         )
                     st.session_state["conversational_rag_chain"] = chain
-                    st.session_state["session_id"] = session_id
+                    st.session_state["session_id"] = build_history_session_id(
+                        paper_id, session_id.strip()
+                    )
                     st.session_state.pop("messages", None)
                     st.success("Chatbot created successfully!")
                     st.session_state["ready"] = True

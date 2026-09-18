@@ -1,64 +1,88 @@
-# Arxiv Research Paper Chatbot
+# Archie: arXiv Research Paper Chatbot
 
-Welcome to the Arxiv Research Paper Chatbot! This project is designed to assist users with understanding and interacting with research papers from Arxiv. The bot leverages Retrieval-Augmented Generation (RAG) techniques, incorporates memory, and utilizes the LangChain library for advanced language processing.
-
-<br>
-<br>
+Archie is a Streamlit conversational RAG assistant for asking grounded questions
+about arXiv research papers. It loads a paper, retrieves relevant passages, and
+uses Groq to generate concise answers based on the retrieved evidence.
 
 ![Arxiv Research Paper Chatbot](docs/img.png)
 
-<br>
-
-Try the permanent deployment: [Open the Research Paper Chatbot](https://researchpaperchatbot-htfeuspv8peraj9aqdjnpd.streamlit.app/).
-
-<br>
+Try the live demo: [Open Archie](https://researchpaperchatbot-htfeuspv8peraj9aqdjnpd.streamlit.app/).
 
 ## Features
 
-- **Retrieval-Augmented Generation (RAG)**: Enhances the chatbot's ability to provide accurate and relevant information by retrieving and incorporating external knowledge from Arxiv papers.
-- **Memory**: Remembers previous interactions to provide a more coherent and contextually aware conversation experience.
-- **LangChain Integration**: Utilizes the LangChain library for sophisticated natural language processing and understanding.
+- Load papers from arXiv URLs, abstract URLs, or paper IDs.
+- Parse papers with `ArxivLoader` and PyMuPDF.
+- Create local FastEmbed embeddings and search them with FAISS.
+- Ask follow-up questions through a history-aware LangChain RAG chain.
+- Generate answers with Groq and stream them in the Streamlit interface.
 
-<br>
+## Architecture
+
+```text
+arXiv paper -> ArxivLoader/PyMuPDF -> text chunks -> FastEmbed -> FAISS
+	-> LangChain retrieval chain -> Groq answer generation -> Streamlit chat
+```
 
 ## Setup
 
-To set up the project, follow these steps:
-```bash
-# Clone the project
-git clone https://github.com/VansDubey/ResearchPaperChatbot.git && cd ResearchPaperChatbot
+Use Python 3.10 or 3.11 for the supported FAISS and LangChain dependency set.
 
-# Environment
+```bash
+git clone https://github.com/VansDubey/ResearchPaperChatbot.git
+cd ResearchPaperChatbot
+
 conda create --name rag-arxiv-bot python=3.10 -y
 conda activate rag-arxiv-bot
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
+Create a `.env` file from `.env.example` and add your Groq API key.
+
 ## Usage
 
-To run the Streamlit app, use the following command:
 ```bash
 streamlit run streamlit_app.py
 ```
 
-For the complete architecture, interview explanation, trade-offs, and Docker/cloud
-deployment steps, see [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md).
+For architecture details and interview preparation, see
+[INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md).
 
-> Use Python 3.10 or 3.11 for the pinned FAISS/LangChain dependency set.
+## Tests
+
+Run the focused unit-test suite with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The tests cover arXiv identifier validation, paper-scoped session memory,
+prompt-injection guardrails, and grounded-answer prompt behavior.
 
 ## Tech Stack
 
 - **Programming Language**: Python
-- **Libraries**: Streamlit, FAISS, PyPDF2
+- **Libraries**: Streamlit, FAISS, PyMuPDF (used by `ArxivLoader`)
 - **AI**: LangChain, RAG, Groq, FastEmbed
 
-## Next Steps
-**Evaluation**
-- DeepEval
+## Current scope
 
-**Deployment**
-- Dockerize
-- KServe, vLLM
-- Groq
+- **Implemented**: arXiv ingestion, local embeddings, FAISS retrieval,
+  conversational memory, Groq generation, Streamlit UI, and Docker support.
+- **Not yet measured**: retrieval quality, answer accuracy, citation accuracy,
+  and the best `k` or chunk-overlap configuration.
+- **Limitations**: chat history and vector indexes are process-local. The demo
+  does not yet provide authentication, rate limiting, or persistent storage.
+- **Model serving**: the application uses Groq for chat inference and FastEmbed
+  locally for embeddings. KServe and vLLM are not implemented.
+
+## Docker
+
+```bash
+docker build -t archie-rag .
+docker run --rm -p 8501:8501 -e GROQ_API_KEY=your_groq_key archie-rag
+```
+
+## Project links
+
+- [Source repository](https://github.com/VansDubey/ResearchPaperChatbot)
+- [Live demo](https://researchpaperchatbot-htfeuspv8peraj9aqdjnpd.streamlit.app/)

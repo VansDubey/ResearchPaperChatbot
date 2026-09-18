@@ -9,7 +9,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders.arxiv import ArxivLoader
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from dotenv import load_dotenv
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 import re
 
 from prompts import create_history_prompt, create_qa_prompt
@@ -31,9 +31,17 @@ def extract_arxiv_id(url):
     return match.group(0) if match else None
 
 
+def build_history_session_id(paper_id, session_id):
+    """Keep conversation history isolated between papers and user sessions."""
+    return f"{quote(paper_id, safe='')}:{quote(session_id, safe='')}"
+
+
 def create_arxiv_retriever(
     pdf_url,
     embedding_model="BAAI/bge-small-en-v1.5",
+    chunk_size=512,
+    chunk_overlap=16,
+    retrieval_k=2,
 ):
     arxiv_id = extract_arxiv_id(pdf_url)
     if not arxiv_id:
@@ -42,13 +50,19 @@ def create_arxiv_retriever(
     documents = loader.load()
     if not documents:
         raise ValueError(f"No arXiv paper was found for '{arxiv_id}'.")
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=16)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
     documents = text_splitter.split_documents(documents=documents)
+    for index, document in enumerate(documents, start=1):
+        source_id = f"chunk-{index}"
+        document.metadata["source_id"] = source_id
+        document.page_content = f"[{source_id}] {document.page_content}"
     vectorstore = FAISS.from_documents(
         documents=documents,
         embedding=FastEmbedEmbeddings(model_name=embedding_model),
     )
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": retrieval_k})
     metadata = documents[0].metadata
 
     return retriever, documents, metadata
